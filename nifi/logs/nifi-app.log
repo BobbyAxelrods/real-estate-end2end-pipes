@@ -1,0 +1,2 @@
+2023-07-01 05:36:26,159 INFO [Write-Ahead Local State Provider Maintenance] org.wali.MinimalLockingWriteAheadLog org.wali.MinimalLockingWriteAheadLog@5285aee3 checkpointed with 4 Records and 0 Swap Files in 94 milliseconds (Stop-the-world time = 3 milliseconds, Clear Edit Logs time = 0 millis), max Transaction ID 34
+2023-07-01 05:36:26,192 INFO [main-EventThread] o.a.c.f.state.ConnectionStateManager State change: SUSPENDED

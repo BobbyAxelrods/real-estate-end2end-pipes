@@ -1,53 +1,29 @@
-version: '3.1'
+version: "3"
+
 services:
-
-  # ===================== #
-  #        MongoDB        #
-  # ===================== #
-  mongo:
-    image: mongo
-    volumes:
-      - ./mongo:/data/db
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=root
-      - MONGO_INITDB_ROOT_PASSWORD=root
-
-  mongo-express:
-    image: mongo-express
-    ports:
-      - 8110:8081
-    environment:
-      - ME_CONFIG_MONGODB_ADMINUSERNAME=root
-      - ME_CONFIG_MONGODB_ADMINPASSWORD=root
-      - ME_CONFIG_MONGODB_SERVER=mongo
-      - ME_CONFIG_MONGODB_PORT=27017
-
-  # ===================== #
-  #        Zookeeper      #
-  # ===================== #
-
+#   # ===================== #
+#   #        zookeeper       #
+#   # ===================== #
   zookeeper:
     hostname: myzookeeper
-    container_name: Zookeeper_container
-    image: 'bitnami/zookeeper:latest'
+    container_name: zk_con
+    image: 'bitnami/zookeeper:3.7.0'
     environment:
       - ALLOW_ANONYMOUS_LOGIN=yes
     networks:
-      - master_network
+      - master
     restart: always
-
-  # ===================== #
-  #        Nifi           #
-  # ===================== #
-
+#   # ===================== #
+#   #        nifi       #
+#   # ===================== #
   nifi:
-    hostname: nifi_work
-    container_name: nifi_container
-    image: 'apache/nifi:latest'
+    image: apache/nifi:1.14.0
+    hostname: mynifi
+    container_name: nifi_con
     ports:
       - 8091:8080
     networks:
-      - master_network
+      - master
     volumes:
       - nifi-database_repository:/opt/nifi/nifi-current/database_repository
       - nifi-flowfile_repository:/opt/nifi/nifi-current/flowfile_repository
@@ -65,21 +41,21 @@ services:
       - NIFI_ZK_CONNECT_STRING=myzookeeper:2181
       - NIFI_ELECTION_MAX_WAIT=30 sec
       - NIFI_SENSITIVE_PROPS_KEY='12345678901234567890A'
+      - LC_ALL=C.UTF-8
+      - LANG=C.UTF-8
     restart: on-failure
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://nifi_work:8080/nifi/"]
+      test: ["CMD", "curl", "-f", "http://mynifi:8080/nifi/"]
       interval: 30s
       timeout: 20s
       retries: 3
-
-  # ===================== #
-  #        Nifi Registry  #
-  # ===================== #
-
+#   # ===================== #
+#   #        registry       #
+#   # ===================== #
   registry:
     hostname: myregistry
-    container_name: registry_container
-    image: 'apache/nifi-registry:latest'
+    container_name: registry_con
+    image: 'apache/nifi-registry:1.15.0'
     restart: on-failure
     ports:
       - 18080:18080
@@ -92,55 +68,56 @@ services:
       - ./nifi_registry/database:/opt/nifi-registry/nifi-registry-current/database
       - ./nifi_registry/flow_storage:/opt/nifi-registry/nifi-registry-current/flow_storage
     networks:
-      - master_network
+      - master
     healthcheck:
       test: ["CMD", "curl", "-f", "http://myregistry:18080/nifi-registry/"]
       interval: 30s
       timeout: 20s
       retries: 3
-
-  # ===================== #
-  #        Postgres       #
-  # ===================== #
-
+#   # ===================== #
+#   #        Postgres       #
+#   # ===================== #
   postgres:
-    hostname: postgres
-    container_name: postgres_container_1
-    image: postgres:13
+    hostname: postgres 
+    container_name: postgres_con
+    image: 'postgres:14-bullseye'
     environment:
       - POSTGRES_USER=root
       - POSTGRES_PASSWORD=root
-      - POSTGRES_DB=ny_taxi
+      - PGDATA=/data/postgres
     volumes:
-      - "./postgres:/var/lib/postgresql/data:rw"
+      - postgres:/data/postgres
     ports:
       - 5432:5432
     networks:
-      - master_network
+      - master
     restart: on-failure
     healthcheck:
-      test: ['CMD', 'pg_isready']
+      test: ["CMD", "pg_isready"]
       interval: 30s
       timeout: 20s
       retries: 3
+#   # ===================== #
+#   #        pgadmin       #
+#   # ===================== #
 
   pgadmin:
-    hostname: pg_admin_web
-    container_name: pg_admin_web
-    image: dpage/pgadmin4
+    hostname: mypgadmin
+    container_name: pgadmin_con
+    image: 'dpage/pgadmin4:6.1'
     environment:
-      - PGADMIN_DEFAULT_EMAIL=pgadmin4@pgadmin.org
-      - PGADMIN_DEFAULT_PASSWORD=admin
+      - PGADMIN_DEFAULT_EMAIL=root@root.org
+      - PGADMIN_DEFAULT_PASSWORD=root
       - PGADMIN_CONFIG_SERVER_MODE=False
     volumes:
       - pgadmin:/var/lib/pgadmin
-    networks:
-      - master_network
     ports:
       - 5050:80
+    networks:
+      - master
     restart: on-failure
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://pg_admin_web:80/misc/ping"]
+      test: ["CMD", "curl", "-f", "http://mypgadmin:80/misc/ping"]
       interval: 30s
       timeout: 20s
       retries: 3
@@ -150,11 +127,11 @@ volumes:
   nifi-flowfile_repository:
   nifi-content_repository:
   nifi-provenance_repository:
-  nifi-conf:
   nifi-state:
+  nifi-conf:
   postgres:
   pgadmin:
 
 networks:
-  master_network:
+  master:
     driver: bridge
